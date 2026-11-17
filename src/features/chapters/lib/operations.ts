@@ -28,3 +28,50 @@ export function deleteChapter(doc: ComicDocument, id: string): boolean {
   doc.chapters.splice(i, 1);
   return true;
 }
+export type ChapterFlag = "direction" | "layout";
+
+/** Toggle a chapter's reading direction; the legacy default stays left-to-right. */
+export function setChapterDirection(
+  doc: ComicDocument,
+  id: string,
+  direction: "ltr" | "rtl",
+): boolean {
+  const c = doc.chapters.find((c) => c.id === id);
+  if (!c) return false;
+  c.direction = direction;
+  return true;
+}
+
+/** Toggle between single-page and facing-page presentation. */
+export function setChapterLayout(
+  doc: ComicDocument,
+  id: string,
+  layout: "single" | "pair",
+): boolean {
+  const c = doc.chapters.find((c) => c.id === id);
+  if (!c) return false;
+  c.layout = layout;
+  return true;
+}
+
+export type PageFlag = "spread" | "cover";
+
+/**
+ * Mark a page as a spread artwork (one image across two physical pages) or as
+ * a standalone cover. Both flags keep the page out of automatic pairing;
+ * clearing both lets the page pair normally again.
+ */
+export function setPageFlag(
+  doc: ComicDocument,
+  chapterId: string,
+  pageId: string,
+  flag: PageFlag,
+  value: boolean,
+): boolean {
+  const chapter = doc.chapters.find((c) => c.id === chapterId),
+    page = chapter?.pages.find((p) => p.id === pageId);
+  if (!page) return false;
+  if (value) page[flag] = true;
+  else delete page[flag];
+  return true;
+}

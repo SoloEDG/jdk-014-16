@@ -11,10 +11,13 @@ export function useProgress(
   doc: Ref<ComicDocument>,
   location: Ref<ReadingLocation>,
   saved: SavedSession | null,
+  narrow: Ref<boolean> = ref(false),
 ) {
   const bookmarks = ref<Bookmark[]>(saved?.bookmarks ?? []),
     status = ref("本地自动保存已开启"),
-    metrics = computed(() => readingMetrics(doc.value, location.value));
+    metrics = computed(() =>
+      readingMetrics(doc.value, location.value, narrow.value),
+    );
   function save() {
     status.value = writeSession({
       document: doc.value,
@@ -36,7 +39,7 @@ export function useProgress(
     const c = doc.value.chapters.find((c) => c.id === location.value.chapterId);
     bookmarks.value.push({
       id: makeId("bookmark"),
-      label: `${c?.title ?? "章节"} · 第 ${metrics.value.pageIndex} 页`,
+      label: `${c?.title ?? "章节"} · 第 ${metrics.value.pageLabel} 页`,
       location: { ...location.value },
       created: Date.now(),
     });

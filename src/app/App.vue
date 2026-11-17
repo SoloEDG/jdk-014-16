@@ -10,9 +10,13 @@ import {
   Bookmark,
   Cloud,
   PanelLeftClose,
+  Columns2,
+  RectangleHorizontal,
+  BookMarked,
 } from "lucide-vue-next";
 import { LibraryPanel } from "../features/library";
 import { ChapterPanel } from "../features/chapters";
+import { PageRail } from "../features/chapters";
 import { ReaderStage, PanelStrip } from "../features/reader";
 import { AudioPanel } from "../features/audio";
 import { ProgressPanel } from "../features/progress";
@@ -24,6 +28,7 @@ const {
   library: l,
   chapters: c,
   audio: a,
+  narrow,
 } = useWorkspace();
 const current = r.current,
   at = r.location,
@@ -31,10 +36,22 @@ const current = r.current,
   metrics = p.metrics,
   bookmarks = p.bookmarks,
   status = p.status,
-  cue = a.cue;
+  cue = a.cue,
+  wide = r.wide,
+  direction = r.direction;
 const chapterIndex = computed(
   () => doc.value.chapters.findIndex((c) => c.id === at.value.chapterId) + 1,
 );
+const page = computed(() => current.value.page);
+const marked = computed(() => ({
+  spread: page.value?.spread === true,
+  cover: page.value?.cover === true,
+}));
+const caption = computed(() => {
+  const label = metrics.value.pageLabel;
+  if (!page.value) return "";
+  return `第 ${label} 页 · ${page.value.title}`;
+});
 function focus(id: string) {
   r.dispatch({ type: "panel", id });
   r.setMode("panel");
@@ -84,6 +101,8 @@ function focus(id: string) {
           @rename="c.begin"
           @move="c.move"
           @remove="c.remove"
+          @direction="c.direction"
+          @layout="c.setLayout"
           @draft="c.draft.value = $event"
           @save="c.rename"
         /><LibraryPanel
@@ -100,7 +119,10 @@ function focus(id: string) {
         <div class="reader-toolbar">
           <div>
             <span class="chapter-eyebrow"
-              >CHAPTER {{ String(chapterIndex).padStart(2, "0") }}</span
+              >CHAPTER {{ String(chapterIndex).padStart(2, "0") }}
+              <i class="direction-tag">{{
+                direction === "rtl" ? "右起" : "左起"
+              }}</i></span
             >
             <h2>{{ current.chapter?.title }}</h2>
           </div>
@@ -118,6 +140,30 @@ function focus(id: string) {
                 <Scan :size="14" /> 逐格
               </button>
             </div>
+            <span class="tool-divider"></span>
+            <button
+              :class="{ marked: marked.spread }"
+              title="把本页标记为跨页图"
+              :aria-pressed="marked.spread"
+              @click="c.flag(at.pageId, 'spread', !marked.spread)"
+            >
+              <RectangleHorizontal :size="15" />
+            </button>
+            <button
+              :class="{ marked: marked.cover }"
+              title="把本页标记为独立封面"
+              :aria-pressed="marked.cover"
+              @click="c.flag(at.pageId, 'cover', !marked.cover)"
+            >
+              <BookMarked :size="15" />
+            </button>
+            <button
+              v-if="wide && narrow"
+              title="切换跨页图的左右半页"
+              @click="r.flipHalf"
+            >
+              <Columns2 :size="15" />
+            </button>
             <span class="tool-divider"></span
             ><button aria-label="缩小" @click="r.zoom(-0.2)">
               <Minus :size="15" /></button
@@ -129,29 +175,37 @@ function focus(id: string) {
             </button>
           </div>
         </div>
+        <PageRail
+          :doc="doc"
+          :location="at"
+          @page="r.dispatch({ type: 'page', id: $event })"
+        />
         <ReaderStage
           v-if="current.page && current.panel"
-          :page="current.page"
-          :panel="current.panel"
+          :doc="doc"
           :location="at"
           :mode="mode"
+          :narrow="narrow"
+          :caption="caption"
           @move="r.dispatch({ type: 'move', delta: $event })"
           @pan="r.pan"
           @panel="focus"
+          @flip="r.flipHalf"
         />
         <div class="page-position">
           <span>{{ current.chapter?.subtitle }}</span>
           <div>
-            <b>{{ String(metrics.pageIndex).padStart(2, "0") }}</b
+            <b>{{ metrics.pageLabel }}</b
             ><span>/ {{ String(metrics.pageCount).padStart(2, "0") }}</span
-            ><small>页</small>
+            ><small>页 · 全书 {{ metrics.percent }}%</small>
           </div>
           <span>阅读位置自动保存 <i></i></span>
         </div>
         <PanelStrip
-          v-if="current.page"
-          :page="current.page"
-          :active="at.panelId"
+          v-if="current.view"
+          :doc="doc"
+          :location="at"
+          :narrow="narrow"
           @select="focus"
         />
       </main>

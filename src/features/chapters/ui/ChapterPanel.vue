@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import type { Chapter } from "../../../shared/document";
+import type {
+  Chapter,
+  ReadingDirection,
+} from "../../../shared/document";
 import ChapterItem from "./ChapterItem.vue";
 defineProps<{
   chapters: Chapter[];
@@ -13,6 +16,8 @@ const emit = defineEmits<{
   rename: [id: string];
   move: [id: string, delta: number];
   remove: [id: string];
+  direction: [value: ReadingDirection, id: string];
+  layout: [value: "single" | "pair", id: string];
   draft: [value: string];
   save: [];
 }>();
@@ -32,6 +37,8 @@ const emit = defineEmits<{
       @rename="emit('rename', c.id)"
       @move="emit('move', c.id, $event)"
       @remove="emit('remove', c.id)"
+      @direction="emit('direction', $event, c.id)"
+      @layout="emit('layout', $event, c.id)"
     />
     <form v-if="editing" class="rename-form" @submit.prevent="emit('save')">
       <input

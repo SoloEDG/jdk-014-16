@@ -1,6 +1,7 @@
 import type { ReadingLocation } from "./document";
 export type ReaderCommand =
   | { type: "chapter"; id: string }
+  | { type: "page"; id: string }
   | { type: "move"; delta: number }
   | { type: "panel"; id: string }
   | { type: "restore"; location: ReadingLocation };
